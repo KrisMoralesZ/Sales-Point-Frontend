@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import axios from "axios";
+import apiUrl from "@/services/requests";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import styles from "./Forms.module.css";
@@ -19,21 +19,23 @@ export default function SignUpForm() {
     name: "",
     email: "",
     password: "",
-    role: "",
-  } as SignUpFormData);
+    role: "Admin",
+  });
 
-  const handleChangeFormData = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChangeFormData = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  ) => {
     const { name, value } = e.target;
-    setFormData({
-      ...formData,
+    setFormData((prev) => ({
+      ...prev,
       [name]: value,
-    });
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
-      const response = await axios.post("/api/authentication/register", formData);
+      const response = await apiUrl.post("/authentication/register", formData);
       console.log("Signup successful:", response.data);
       router.push("/");
     } catch (error) {
@@ -113,11 +115,8 @@ export default function SignUpForm() {
               className={styles.input}
               id="role"
               name="role"
-              autoComplete="role"
-              defaultValue={formData.role}
-              onChange={(e) =>
-                setFormData({ ...formData, role: e.target.value })
-              }
+              value={formData.role}
+              onChange={handleChangeFormData}
               required
             >
               <option value="Admin">Admin</option>
@@ -127,7 +126,7 @@ export default function SignUpForm() {
         </div>
 
         <button className={styles.button} type="submit">
-          Login
+          Sign up
         </button>
       </form>
     </div>
