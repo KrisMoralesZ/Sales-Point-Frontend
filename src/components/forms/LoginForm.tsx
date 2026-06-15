@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import axios from "axios";
-import styles from "./LoginForm.module.css";
+import styles from "./Forms.module.css";
 
 interface LoginFormData {
   email: string;
