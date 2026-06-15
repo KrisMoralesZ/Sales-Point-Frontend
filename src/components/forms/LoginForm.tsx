@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import axios from "axios";
+import styles from "./LoginForm.module.css";
 
 interface LoginFormData {
   email: string;
@@ -35,34 +36,55 @@ export default function LoginForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit}>
-      <div>
-        <label htmlFor="email">Email:</label>
-        <input
-          type="email"
-          id="email"
-          name="email"
-          autoComplete="email"
-          value={formData.email}
-          onChange={handleChange}
-          required
-          suppressHydrationWarning
-        />
-      </div>
-      <div>
-        <label htmlFor="password">Password:</label>
-        <input
-          type="password"
-          id="password"
-          name="password"
-          autoComplete="current-password"
-          value={formData.password}
-          onChange={handleChange}
-          required
-          suppressHydrationWarning
-        />
-      </div>
-      <button type="submit">Login</button>
-    </form>
+    <div className={styles.wrapper}>
+      <form className={styles.form} onSubmit={handleSubmit}>
+        <div className={styles.header}>
+          <h1 className={styles.title}>Sign in</h1>
+          <p className={styles.subtitle}>Enter your credentials to continue</p>
+        </div>
+
+        <div className={styles.fields}>
+          <div className={styles.field}>
+            <label className={styles.label} htmlFor="email">
+              Email
+            </label>
+            <input
+              className={styles.input}
+              type="email"
+              id="email"
+              name="email"
+              autoComplete="email"
+              placeholder="you@example.com"
+              value={formData.email}
+              onChange={handleChange}
+              required
+              suppressHydrationWarning
+            />
+          </div>
+
+          <div className={styles.field}>
+            <label className={styles.label} htmlFor="password">
+              Password
+            </label>
+            <input
+              className={styles.input}
+              type="password"
+              id="password"
+              name="password"
+              autoComplete="current-password"
+              placeholder="••••••••"
+              value={formData.password}
+              onChange={handleChange}
+              required
+              suppressHydrationWarning
+            />
+          </div>
+        </div>
+
+        <button className={styles.button} type="submit">
+          Login
+        </button>
+      </form>
+    </div>
   );
 }
