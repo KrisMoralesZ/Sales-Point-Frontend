@@ -1,7 +1,9 @@
 "use client";
-
 import { useState } from "react";
-import axios from "axios";
+import { toast } from "react-toastify";
+import { useRouter } from "next/navigation";
+import apiUrl from "@/services/requests";
+import { AuthResponse, setAuth } from "@/services/auth";
 import styles from "./Forms.module.css";
 
 interface LoginFormData {
@@ -10,6 +12,7 @@ interface LoginFormData {
 }
 
 export default function LoginForm() {
+  const router = useRouter();
   const [formData, setFormData] = useState<LoginFormData>({
     email: "",
     password: "",
@@ -26,12 +29,14 @@ export default function LoginForm() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
-      const response = await axios.post("/api/login", formData);
-      console.log("Login successful:", response.data);
-      // Handle successful login, e.g., redirect to dashboard
+      const response = await apiUrl.post<AuthResponse>(
+        "/authentication/login",
+        formData,
+      );
+      setAuth(response.data);
+      router.push("/");
     } catch (error) {
-      console.error("Login failed:", error);
-      // Handle login failure, e.g., show error message
+      toast.error("Login failed");
     }
   };
 

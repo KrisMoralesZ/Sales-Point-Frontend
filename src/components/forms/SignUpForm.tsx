@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import apiUrl from "@/services/requests";
+import { AuthResponse, setAuth } from "@/services/auth";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import styles from "./Forms.module.css";
@@ -35,8 +36,18 @@ export default function SignUpForm() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
-      const response = await apiUrl.post("/authentication/register", formData);
-      console.log("Signup successful:", response.data);
+      await apiUrl.post("/authentication/register", formData);
+
+      const loginResponse = await apiUrl.post<AuthResponse>(
+        "/authentication/login",
+        {
+          email: formData.email,
+          password: formData.password,
+        },
+      );
+
+      setAuth(loginResponse.data);
+      toast.success("Account created successfully");
       router.push("/");
     } catch (error) {
       console.error("Signup failed:", error);
