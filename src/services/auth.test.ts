@@ -3,15 +3,17 @@ import {
   clearAuth,
   getToken,
   getUser,
+  isAdmin,
   isAuthenticated,
   setAuth,
+  UserRole,
 } from "./auth";
 
 const mockAuthResponse = {
   id: "1",
   name: "John Doe",
   email: "john@example.com",
-  role: "Admin",
+  role: UserRole.Admin,
   createdAt: "2024-01-01T00:00:00.000Z",
   updatedAt: "2024-01-01T00:00:00.000Z",
   token: "test-token",
@@ -31,7 +33,7 @@ describe("auth service", () => {
         id: "1",
         name: "John Doe",
         email: "john@example.com",
-        role: "Admin",
+        role: UserRole.Admin,
         createdAt: "2024-01-01T00:00:00.000Z",
         updatedAt: "2024-01-01T00:00:00.000Z",
       }),
@@ -46,7 +48,7 @@ describe("auth service", () => {
       id: "1",
       name: "John Doe",
       email: "john@example.com",
-      role: "Admin",
+      role: UserRole.Admin,
       createdAt: "2024-01-01T00:00:00.000Z",
       updatedAt: "2024-01-01T00:00:00.000Z",
     });
@@ -61,5 +63,21 @@ describe("auth service", () => {
     expect(getToken()).toBeNull();
     expect(getUser()).toBeNull();
     expect(isAuthenticated()).toBe(false);
+  });
+
+  it("returns true for isAdmin when authenticated as Admin", () => {
+    setAuth(mockAuthResponse);
+
+    expect(isAdmin()).toBe(true);
+  });
+
+  it("returns false for isAdmin when authenticated as Employee", () => {
+    setAuth({ ...mockAuthResponse, role: UserRole.Employee });
+
+    expect(isAdmin()).toBe(false);
+  });
+
+  it("returns false for isAdmin when not authenticated", () => {
+    expect(isAdmin()).toBe(false);
   });
 });

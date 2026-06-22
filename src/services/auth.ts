@@ -8,11 +8,18 @@ function notifyAuthChange(): void {
   window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
 }
 
+export const UserRole = {
+  Admin: "Admin",
+  Employee: "Employee",
+} as const;
+
+export type UserRole = (typeof UserRole)[keyof typeof UserRole];
+
 export interface AuthUser {
   id: string;
   name: string;
   email: string;
-  role: string;
+  role: UserRole;
   createdAt: string;
   updatedAt: string;
 }
@@ -58,4 +65,10 @@ export function clearAuth(): void {
 
 export function isAuthenticated(): boolean {
   return !!getToken() && !!getUser();
+}
+
+export function isAdmin(): boolean {
+  if (!isAuthenticated()) return false;
+
+  return getUser()?.role === UserRole.Admin;
 }
