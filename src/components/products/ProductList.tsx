@@ -47,8 +47,32 @@ export default function ProductList() {
   }, []);
 
   useEffect(() => {
-    loadProducts();
-  }, [loadProducts]);
+    let cancelled = false;
+
+    async function loadInitialProducts() {
+      try {
+        const data = await getProducts();
+        if (!cancelled) {
+          setProducts(data);
+          setError(null);
+        }
+      } catch {
+        if (!cancelled) {
+          setError("Unable to load products. Please try again.");
+        }
+      } finally {
+        if (!cancelled) {
+          setInitialLoading(false);
+        }
+      }
+    }
+
+    void loadInitialProducts();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleProductCreated = async () => {
     setShowCreateForm(false);
