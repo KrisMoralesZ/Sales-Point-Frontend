@@ -1,16 +1,67 @@
 "use client";
 
+import { useCallback, useEffect, useRef, useState } from "react";
+import { lookupProduct } from "@/services/checkout";
+import { Product } from "@/services/products";
+import { getApiErrorMessage } from "@/services/apiError";
 import styles from "./SalesPointDashboard.module.css";
 
-function formatPrice(amount: number): string {
+function formatPrice(amount: number | string): string {
+  const value = typeof amount === "string" ? Number(amount) : amount;
+
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
-  }).format(amount);
+  }).format(value);
 }
 
 export default function SalesPointDashboard() {
+  const skuInputRef = useRef<HTMLInputElement>(null);
+  const [skuInput, setSkuInput] = useState("");
+  const [lookedUpProduct, setLookedUpProduct] = useState<Product | null>(null);
+  const [lookupLoading, setLookupLoading] = useState(false);
+  const [lookupError, setLookupError] = useState<string | null>(null);
   const subtotal = 0;
+
+  const focusSkuInput = useCallback(() => {
+    skuInputRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    focusSkuInput();
+  }, [focusSkuInput]);
+
+  const performLookup = useCallback(
+    async (rawSku: string) => {
+      const sku = rawSku.trim();
+      if (!sku || lookupLoading) return;
+
+      setLookupLoading(true);
+      setLookupError(null);
+      setLookedUpProduct(null);
+
+      try {
+        const product = await lookupProduct(sku);
+        setLookedUpProduct(product);
+        setSkuInput("");
+      } catch (error) {
+        setLookupError(
+          getApiErrorMessage(error, `Product not found for code "${sku}".`),
+        );
+      } finally {
+        setLookupLoading(false);
+        focusSkuInput();
+      }
+    },
+    [focusSkuInput, lookupLoading],
+  );
+
+  const handleSkuKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key !== "Enter") return;
+
+    event.preventDefault();
+    void performLookup(skuInput);
+  };
 
   return (
     <section className={styles.wrapper}>
@@ -38,16 +89,49 @@ export default function SalesPointDashboard() {
               SKU / Barcode
             </label>
             <input
+              ref={skuInputRef}
               id="sku-input"
               className={styles.input}
               type="text"
+              inputMode="text"
               placeholder="Scan or type product code"
-              autoComplete="on"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck={false}
+              value={skuInput}
+              onChange={(event) => setSkuInput(event.target.value)}
+              onKeyDown={handleSkuKeyDown}
+              disabled={lookupLoading}
+              aria-describedby="product-preview"
             />
           </div>
 
-          <div className={styles.productPreview}>
-            Look up a product to preview details and choose a quantity.
+          <div
+            id="product-preview"
+            className={styles.productPreview}
+            aria-live="polite"
+          >
+            {lookupLoading ? (
+              <p>Looking up product...</p>
+            ) : lookupError ? (
+              <p className={styles.previewError} role="alert">
+                {lookupError}
+              </p>
+            ) : lookedUpProduct ? (
+              <div className={styles.productDetails}>
+                <p className={styles.productName}>{lookedUpProduct.name}</p>
+                <p className={styles.productMeta}>SKU: {lookedUpProduct.sku}</p>
+                <p className={styles.productPrice}>
+                  {formatPrice(lookedUpProduct.price)}
+                </p>
+                <p className={styles.productMeta}>
+                  {lookedUpProduct.quantity} in stock
+                </p>
+              </div>
+            ) : (
+              <p>Look up a product to preview details and choose a quantity.</p>
+            )}
           </div>
         </section>
 
