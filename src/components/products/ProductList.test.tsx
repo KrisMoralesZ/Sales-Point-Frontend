@@ -2,7 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import ProductList from "./ProductList";
-import { getProducts } from "@/services/products";
+import { getProducts, Product } from "@/services/products";
 import { isAdmin } from "@/services/auth";
 
 vi.mock("@/services/products", () => ({
@@ -33,7 +33,29 @@ vi.mock("@/components/products/CreateProductForm", () => ({
   ),
 }));
 
-const mockProducts = [
+vi.mock("@/components/products/UpdateProductForm", () => ({
+  default: ({
+    product,
+    onSuccess,
+    onCancel,
+  }: {
+    product: { name: string };
+    onSuccess: () => void;
+    onCancel: () => void;
+  }) => (
+    <div>
+      <p>Edit product form for {product.name}</p>
+      <button type="button" onClick={onSuccess}>
+        Mock save
+      </button>
+      <button type="button" onClick={onCancel}>
+        Mock cancel edit
+      </button>
+    </div>
+  ),
+}));
+
+const mockProducts: Product[] = [
   {
     id: "product-1",
     name: "Coffee Beans",
@@ -47,7 +69,7 @@ const mockProducts = [
   {
     id: "product-2",
     name: "Green Tea",
-    price: "8.99",
+    price: 8.99,
     quantity: 15,
     sku: "TEA-002",
     createdAt: "2024-01-02T00:00:00.000Z",
@@ -139,5 +161,39 @@ describe("ProductList", () => {
     await user.click(await screen.findByRole("button", { name: /create product/i }));
 
     expect(screen.getByText("Create product form")).toBeInTheDocument();
+  });
+
+  it("shows edit buttons for admin users", async () => {
+    vi.mocked(getProducts).mockResolvedValue(mockProducts);
+
+    render(<ProductList />);
+
+    expect(await screen.findAllByRole("button", { name: /^edit$/i })).toHaveLength(2);
+  });
+
+  it("hides edit buttons for non-admin users", async () => {
+    vi.mocked(isAdmin).mockReturnValue(false);
+    vi.mocked(getProducts).mockResolvedValue(mockProducts);
+
+    render(<ProductList />);
+
+    await screen.findByText("Coffee Beans");
+
+    expect(screen.queryByRole("button", { name: /^edit$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("columnheader", { name: /actions/i })).not.toBeInTheDocument();
+  });
+
+  it("opens the edit product form when an edit button is clicked", async () => {
+    const user = userEvent.setup();
+    vi.mocked(getProducts).mockResolvedValue(mockProducts);
+
+    render(<ProductList />);
+
+    const editButtons = await screen.findAllByRole("button", { name: /^edit$/i });
+    await user.click(editButtons[0]);
+
+    expect(
+      screen.getByText("Edit product form for Coffee Beans"),
+    ).toBeInTheDocument();
   });
 });

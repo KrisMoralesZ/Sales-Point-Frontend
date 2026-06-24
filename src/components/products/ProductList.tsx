@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { isAdmin } from "@/services/auth";
 import CreateProductForm from "@/components/products/CreateProductForm";
+import UpdateProductForm from "@/components/products/UpdateProductForm";
 import { getProducts, Product } from "@/services/products";
 import styles from "./ProductList.module.css";
 
@@ -20,6 +21,7 @@ export default function ProductList() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
   const loadProducts = useCallback(async () => {
     setLoading(true);
@@ -41,6 +43,11 @@ export default function ProductList() {
 
   const handleProductCreated = async () => {
     setShowCreateForm(false);
+    await loadProducts();
+  };
+
+  const handleProductUpdated = async () => {
+    setEditingProduct(null);
     await loadProducts();
   };
 
@@ -72,6 +79,14 @@ export default function ProductList() {
         />
       )}
 
+      {editingProduct && (
+        <UpdateProductForm
+          product={editingProduct}
+          onSuccess={handleProductUpdated}
+          onCancel={() => setEditingProduct(null)}
+        />
+      )}
+
       {loading ? (
         <p className={styles.state}>Loading products...</p>
       ) : error ? (
@@ -87,6 +102,7 @@ export default function ProductList() {
                 <th scope="col">SKU</th>
                 <th scope="col">Price</th>
                 <th scope="col">Stock</th>
+                {isAdmin() && <th scope="col">Actions</th>}
               </tr>
             </thead>
             <tbody>
@@ -96,6 +112,17 @@ export default function ProductList() {
                   <td>{product.sku}</td>
                   <td className={styles.numeric}>{formatPrice(product.price)}</td>
                   <td className={styles.numeric}>{product.quantity}</td>
+                  {isAdmin() && (
+                    <td>
+                      <button
+                        type="button"
+                        className={styles.editButton}
+                        onClick={() => setEditingProduct(product)}
+                      >
+                        Edit
+                      </button>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
