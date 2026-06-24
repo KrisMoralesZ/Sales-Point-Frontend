@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   AUTH_CHANGE_EVENT,
   isAdmin,
+  isEmployee,
   isAuthenticated,
 } from "@/services/auth";
 import styles from "./Navbar.module.css";
@@ -14,11 +15,12 @@ export default function Navbar() {
   const pathname = usePathname();
   const [authenticated, setAuthenticated] = useState(false);
   const [admin, setAdmin] = useState(false);
-
+  const [employee, setEmployee] = useState(false);
   useEffect(() => {
     const syncAuth = () => {
       setAuthenticated(isAuthenticated());
       setAdmin(isAdmin());
+      setEmployee(isEmployee());
     };
 
     syncAuth();
@@ -43,6 +45,16 @@ export default function Navbar() {
             }`}
           >
             Products
+          </Link>
+        )}
+        {employee && (
+          <Link
+            href="/sales-point"
+            className={`${styles.link} ${
+              pathname.startsWith("/sales-point") ? styles.activeLink : ""
+            }`}
+          >
+            Sales Point
           </Link>
         )}
       </div>
