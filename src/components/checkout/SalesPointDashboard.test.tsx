@@ -2,10 +2,19 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import SalesPointDashboard from "./SalesPointDashboard";
-import { searchProductsByCode } from "@/services/checkout";
+import { searchProductsByCode, completeCheckout } from "@/services/checkout";
+import { toast } from "react-toastify";
 
 vi.mock("@/services/checkout", () => ({
   searchProductsByCode: vi.fn(),
+  completeCheckout: vi.fn(),
+}));
+
+vi.mock("react-toastify", () => ({
+  toast: {
+    error: vi.fn(),
+    success: vi.fn(),
+  },
 }));
 
 const mockProduct = {
@@ -19,10 +28,34 @@ const mockProduct = {
   updatedAt: "2024-01-01T00:00:00.000Z",
 };
 
+const mockSale = {
+  id: "sale-1",
+  employeeId: "employee-1",
+  total: 12.5,
+  createdAt: "2024-01-01T00:00:00.000Z",
+  items: [
+    {
+      id: "sale-item-1",
+      saleId: "sale-1",
+      productId: "product-1",
+      sku: "COFFEE-001",
+      productName: "Coffee Beans",
+      quantity: 1,
+      unitPrice: 12.5,
+      lineTotal: 12.5,
+    },
+  ],
+};
+
 async function lookupCoffee(user: ReturnType<typeof userEvent.setup>) {
   const input = screen.getByLabelText(/sku \/ barcode/i);
   await user.type(input, "COFFEE-001{Enter}");
   await screen.findByText("Coffee Beans");
+}
+
+async function addCoffeeToCart(user: ReturnType<typeof userEvent.setup>) {
+  await lookupCoffee(user);
+  await user.click(screen.getByRole("button", { name: /add to cart/i }));
 }
 
 describe("SalesPointDashboard", () => {
@@ -183,5 +216,50 @@ describe("SalesPointDashboard", () => {
     await user.click(screen.getByRole("button", { name: /^remove$/i }));
     expect(screen.getByText(/no items in the cart yet/i)).toBeInTheDocument();
     expect(screen.getByText("$0.00")).toBeInTheDocument();
+  });
+
+  it("enables complete sale when the cart has items", async () => {
+    const user = userEvent.setup();
+
+    render(<SalesPointDashboard />);
+    await addCoffeeToCart(user);
+
+    expect(screen.getByRole("button", { name: /complete sale/i })).toBeEnabled();
+  });
+
+  it("completes the sale, clears the cart, and shows a success toast", async () => {
+    const user = userEvent.setup();
+    vi.mocked(completeCheckout).mockResolvedValue(mockSale);
+
+    render(<SalesPointDashboard />);
+    await addCoffeeToCart(user);
+    await user.click(screen.getByRole("button", { name: /complete sale/i }));
+
+    await waitFor(() => {
+      expect(completeCheckout).toHaveBeenCalledWith({
+        items: [{ productId: "product-1", quantity: 1 }],
+      });
+    });
+
+    expect(toast.success).toHaveBeenCalledWith("Sale completed successfully");
+    expect(screen.getByText(/no items in the cart yet/i)).toBeInTheDocument();
+    expect(screen.getByText("$0.00")).toBeInTheDocument();
+    expect(screen.getByLabelText(/sku \/ barcode/i)).toHaveFocus();
+  });
+
+  it("shows an error toast when checkout fails and keeps cart items", async () => {
+    const user = userEvent.setup();
+    vi.mocked(completeCheckout).mockRejectedValue(new Error("Checkout failed"));
+
+    render(<SalesPointDashboard />);
+    await addCoffeeToCart(user);
+    await user.click(screen.getByRole("button", { name: /complete sale/i }));
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith("Failed to complete sale.");
+    });
+
+    expect(screen.getByText("Coffee Beans")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /complete sale/i })).toBeEnabled();
   });
 });

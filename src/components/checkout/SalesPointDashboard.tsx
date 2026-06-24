@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { searchProductsByCode } from "@/services/checkout";
+import { searchProductsByCode, completeCheckout } from "@/services/checkout";
 import { Product } from "@/services/products";
 import { getApiErrorMessage } from "@/services/apiError";
+import { toast } from "react-toastify";
 import {
   addProductToCart,
   calculateItemCount,
@@ -35,6 +36,8 @@ export default function SalesPointDashboard() {
   const [selectedQuantity, setSelectedQuantity] = useState(1);
   const [quantityError, setQuantityError] = useState<string | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
   const availableQuantity = lookedUpProduct
     ? getAvailableQuantity(lookedUpProduct, cart)
@@ -164,6 +167,32 @@ export default function SalesPointDashboard() {
     setSelectedQuantity(1);
     setQuantityError(null);
     focusSkuInput();
+  };
+
+  const handleCompleteSale = async () => {
+    if (cart.length === 0 || checkoutLoading) return;
+
+    setCheckoutLoading(true);
+    setCheckoutError(null);
+
+    try {
+      await completeCheckout({
+        items: cart.map((item) => ({
+          productId: item.productId,
+          quantity: item.quantity,
+        })),
+      });
+
+      toast.success("Sale completed successfully");
+      setCart([]);
+      focusSkuInput();
+    } catch (error) {
+      const message = getApiErrorMessage(error, "Failed to complete sale.");
+      setCheckoutError(message);
+      toast.error(message);
+    } finally {
+      setCheckoutLoading(false);
+    }
   };
 
   return (
@@ -404,9 +433,19 @@ export default function SalesPointDashboard() {
               <span className={styles.summaryLabel}>Total</span>
               <span className={styles.summaryValue}>{formatPrice(subtotal)}</span>
             </div>
-            <button type="button" className={styles.checkoutButton} disabled>
-              Complete sale
+            <button
+              type="button"
+              className={styles.checkoutButton}
+              onClick={() => void handleCompleteSale()}
+              disabled={cart.length === 0 || checkoutLoading}
+            >
+              {checkoutLoading ? "Completing sale..." : "Complete sale"}
             </button>
+            {checkoutError && (
+              <p className={styles.fieldError} role="alert">
+                {checkoutError}
+              </p>
+            )}
           </div>
         </section>
       </div>

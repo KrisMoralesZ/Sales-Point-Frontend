@@ -91,4 +91,27 @@ describe("checkout service", () => {
     expect(apiUrl.post).toHaveBeenCalledWith("/checkout", checkoutInput);
     expect(sale).toEqual(mockSale);
   });
+
+  it("throws when lookup finds no products", async () => {
+    vi.mocked(apiUrl.get).mockResolvedValue({ data: [] });
+
+    await expect(lookupProduct("UNKNOWN")).rejects.toThrow(
+      'Product not found for code "UNKNOWN".',
+    );
+  });
+
+  it("throws when lookup finds multiple products", async () => {
+    const secondProduct = {
+      ...mockProduct,
+      id: "product-2",
+      sku: "COFFEE-0010",
+    };
+    vi.mocked(apiUrl.get).mockResolvedValue({
+      data: [mockProduct, secondProduct],
+    });
+
+    await expect(lookupProduct("001")).rejects.toThrow(
+      'Multiple products matched code "001". Select one from the list.',
+    );
+  });
 });

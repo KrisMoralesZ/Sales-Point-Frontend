@@ -359,6 +359,14 @@
   color: var(--background);
   font: inherit;
   font-weight: 600;
+  cursor: pointer;
+}
+
+.checkoutButton:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.checkoutButton:disabled {
   cursor: not-allowed;
   opacity: 0.6;
 }
