@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import apiUrl from "./requests";
-import { completeCheckout, lookupProduct } from "./checkout";
+import { completeCheckout, lookupProduct, searchProductsByCode } from "./checkout";
 
 vi.mock("./requests", () => ({
   default: {
@@ -49,7 +49,7 @@ describe("checkout service", () => {
   });
 
   it("looks up a product by sku", async () => {
-    vi.mocked(apiUrl.get).mockResolvedValue({ data: mockProduct });
+    vi.mocked(apiUrl.get).mockResolvedValue({ data: [mockProduct] });
 
     const product = await lookupProduct("COFFEE-001");
 
@@ -57,8 +57,24 @@ describe("checkout service", () => {
     expect(product).toEqual(mockProduct);
   });
 
+  it("returns all matching products for partial sku searches", async () => {
+    const secondProduct = {
+      ...mockProduct,
+      id: "product-2",
+      sku: "COFFEE-0010",
+      name: "Coffee Bulk",
+    };
+    vi.mocked(apiUrl.get).mockResolvedValue({
+      data: [mockProduct, secondProduct],
+    });
+
+    const matches = await searchProductsByCode("001");
+
+    expect(matches).toHaveLength(2);
+  });
+
   it("encodes special characters in sku lookup requests", async () => {
-    vi.mocked(apiUrl.get).mockResolvedValue({ data: mockProduct });
+    vi.mocked(apiUrl.get).mockResolvedValue({ data: [mockProduct] });
 
     await lookupProduct("COFFEE/001");
 

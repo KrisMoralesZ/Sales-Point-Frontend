@@ -2,10 +2,10 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import SalesPointDashboard from "./SalesPointDashboard";
-import { lookupProduct } from "@/services/checkout";
+import { searchProductsByCode } from "@/services/checkout";
 
 vi.mock("@/services/checkout", () => ({
-  lookupProduct: vi.fn(),
+  searchProductsByCode: vi.fn(),
 }));
 
 const mockProduct = {
@@ -19,9 +19,16 @@ const mockProduct = {
   updatedAt: "2024-01-01T00:00:00.000Z",
 };
 
+async function lookupCoffee(user: ReturnType<typeof userEvent.setup>) {
+  const input = screen.getByLabelText(/sku \/ barcode/i);
+  await user.type(input, "COFFEE-001{Enter}");
+  await screen.findByText("Coffee Beans");
+}
+
 describe("SalesPointDashboard", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(searchProductsByCode).mockResolvedValue([mockProduct]);
   });
 
   it("renders the sales point layout", () => {
@@ -49,7 +56,6 @@ describe("SalesPointDashboard", () => {
 
   it("looks up a product when Enter is pressed", async () => {
     const user = userEvent.setup();
-    vi.mocked(lookupProduct).mockResolvedValue(mockProduct);
 
     render(<SalesPointDashboard />);
 
@@ -57,23 +63,52 @@ describe("SalesPointDashboard", () => {
     await user.type(input, "COFFEE-001{Enter}");
 
     await waitFor(() => {
-      expect(lookupProduct).toHaveBeenCalledWith("COFFEE-001");
+      expect(searchProductsByCode).toHaveBeenCalledWith("COFFEE-001");
     });
 
     expect(await screen.findByText("Coffee Beans")).toBeInTheDocument();
     expect(screen.getByText("SKU: COFFEE-001")).toBeInTheDocument();
     expect(screen.getByText("$12.50")).toBeInTheDocument();
-    expect(screen.getByText("24 in stock")).toBeInTheDocument();
+    expect(screen.getByText("24 available")).toBeInTheDocument();
+    expect(screen.getByLabelText(/^quantity$/i)).toHaveValue(1);
     expect(input).toHaveValue("");
+    expect(input).toHaveFocus();
+  });
+
+  it("shows multiple matches when a partial sku finds more than one product", async () => {
+    const user = userEvent.setup();
+    const secondProduct = {
+      ...mockProduct,
+      id: "product-2",
+      sku: "COFFEE-0010",
+      name: "Coffee Bulk",
+    };
+    vi.mocked(searchProductsByCode).mockResolvedValue([
+      mockProduct,
+      secondProduct,
+    ]);
+
+    render(<SalesPointDashboard />);
+
+    const input = screen.getByLabelText(/sku \/ barcode/i);
+    await user.type(input, "001{Enter}");
+
+    expect(
+      await screen.findByText(/multiple products found/i),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /coffee beans/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /coffee bulk/i })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /coffee bulk/i }));
+
+    expect(await screen.findByText("Coffee Bulk")).toBeInTheDocument();
+    expect(screen.getByText("SKU: COFFEE-0010")).toBeInTheDocument();
     expect(input).toHaveFocus();
   });
 
   it("shows an error when the product is not found", async () => {
     const user = userEvent.setup();
-    vi.mocked(lookupProduct).mockRejectedValue({
-      response: { data: { message: "Product not found" } },
-      isAxiosError: true,
-    });
+    vi.mocked(searchProductsByCode).mockRejectedValue(new Error("Not found"));
 
     render(<SalesPointDashboard />);
 
@@ -81,7 +116,7 @@ describe("SalesPointDashboard", () => {
     await user.type(input, "UNKNOWN-SKU{Enter}");
 
     expect(
-      await screen.findByText("Product not found"),
+      await screen.findByText(/product not found for code "unknown-sku"/i),
     ).toBeInTheDocument();
     expect(screen.queryByText("Coffee Beans")).not.toBeInTheDocument();
     expect(input).toHaveFocus();
@@ -94,6 +129,59 @@ describe("SalesPointDashboard", () => {
 
     await user.keyboard("{Enter}");
 
-    expect(lookupProduct).not.toHaveBeenCalled();
+    expect(searchProductsByCode).not.toHaveBeenCalled();
+  });
+
+  it("adds a product to the cart with the selected quantity", async () => {
+    const user = userEvent.setup();
+
+    render(<SalesPointDashboard />);
+    await lookupCoffee(user);
+
+    await user.clear(screen.getByLabelText(/^quantity$/i));
+    await user.type(screen.getByLabelText(/^quantity$/i), "2");
+    await user.click(screen.getByRole("button", { name: /add to cart/i }));
+
+    expect(screen.getByText("Coffee Beans")).toBeInTheDocument();
+    expect(
+      screen.getByRole("spinbutton", { name: /quantity for coffee beans/i }),
+    ).toHaveValue(2);
+    expect(screen.getAllByText("$25.00")).toHaveLength(2);
+    expect(screen.getByText("Items")).toBeInTheDocument();
+    expect(screen.getByText("2", { selector: "span" })).toBeInTheDocument();
+  });
+
+  it("shows a validation error when quantity exceeds available stock", async () => {
+    const user = userEvent.setup();
+
+    render(<SalesPointDashboard />);
+    await lookupCoffee(user);
+
+    await user.clear(screen.getByLabelText(/^quantity$/i));
+    await user.type(screen.getByLabelText(/^quantity$/i), "30");
+    await user.click(screen.getByRole("button", { name: /add to cart/i }));
+
+    expect(await screen.findByText(/only 24 available/i)).toBeInTheDocument();
+    expect(screen.getByText(/no items in the cart yet/i)).toBeInTheDocument();
+  });
+
+  it("updates and removes cart items", async () => {
+    const user = userEvent.setup();
+
+    render(<SalesPointDashboard />);
+    await lookupCoffee(user);
+    await user.click(screen.getByRole("button", { name: /add to cart/i }));
+
+    await user.click(
+      screen.getByRole("button", { name: /increase quantity for coffee beans/i }),
+    );
+    expect(
+      screen.getByRole("spinbutton", { name: /quantity for coffee beans/i }),
+    ).toHaveValue(2);
+    expect(screen.getAllByText("$25.00")).toHaveLength(2);
+
+    await user.click(screen.getByRole("button", { name: /^remove$/i }));
+    expect(screen.getByText(/no items in the cart yet/i)).toBeInTheDocument();
+    expect(screen.getByText("$0.00")).toBeInTheDocument();
   });
 });

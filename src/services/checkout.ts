@@ -29,11 +29,27 @@ export interface Sale {
   createdAt: string;
 }
 
-export async function lookupProduct(sku: string): Promise<Product> {
-  const response = await apiUrl.get<Product>(
-    `/products/lookup/${encodeURIComponent(sku)}`,
+export async function searchProductsByCode(code: string): Promise<Product[]> {
+  const response = await apiUrl.get<Product[]>(
+    `/products/lookup/${encodeURIComponent(code)}`,
   );
   return response.data;
+}
+
+export async function lookupProduct(code: string): Promise<Product> {
+  const matches = await searchProductsByCode(code);
+
+  if (matches.length === 0) {
+    throw new Error(`Product not found for code "${code}".`);
+  }
+
+  if (matches.length > 1) {
+    throw new Error(
+      `Multiple products matched code "${code}". Select one from the list.`,
+    );
+  }
+
+  return matches[0];
 }
 
 export async function completeCheckout(
