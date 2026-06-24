@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { isAdmin } from "@/services/auth";
+import CreateProductForm from "@/components/products/CreateProductForm";
 import { getProducts, Product } from "@/services/products";
 import styles from "./ProductList.module.css";
 
@@ -17,45 +19,58 @@ export default function ProductList() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+
+  const loadProducts = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const data = await getProducts();
+      setProducts(data);
+    } catch {
+      setError("Unable to load products. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    let cancelled = false;
-
-    async function loadProducts() {
-      setLoading(true);
-      setError(null);
-
-      try {
-        const data = await getProducts();
-        if (!cancelled) {
-          setProducts(data);
-        }
-      } catch {
-        if (!cancelled) {
-          setError("Unable to load products. Please try again.");
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    }
-
     loadProducts();
+  }, [loadProducts]);
 
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const handleProductCreated = async () => {
+    setShowCreateForm(false);
+    await loadProducts();
+  };
 
   return (
     <section className={styles.wrapper}>
       <header className={styles.header}>
-        <h1 className={styles.title}>Products</h1>
-        <p className={styles.subtitle}>
-          Manage inventory, pricing, and stock levels.
-        </p>
+        <div className={styles.headerContent}>
+          <h1 className={styles.title}>Products</h1>
+          <p className={styles.subtitle}>
+            Manage inventory, pricing, and stock levels.
+          </p>
+        </div>
+
+        {isAdmin() && (
+          <button
+            type="button"
+            className={styles.createButton}
+            onClick={() => setShowCreateForm(true)}
+          >
+            Create product
+          </button>
+        )}
       </header>
+
+      {showCreateForm && (
+        <CreateProductForm
+          onSuccess={handleProductCreated}
+          onCancel={() => setShowCreateForm(false)}
+        />
+      )}
 
       {loading ? (
         <p className={styles.state}>Loading products...</p>

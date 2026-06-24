@@ -1,10 +1,36 @@
 import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import ProductList from "./ProductList";
 import { getProducts } from "@/services/products";
+import { isAdmin } from "@/services/auth";
 
 vi.mock("@/services/products", () => ({
   getProducts: vi.fn(),
+}));
+
+vi.mock("@/services/auth", () => ({
+  isAdmin: vi.fn(),
+}));
+
+vi.mock("@/components/products/CreateProductForm", () => ({
+  default: ({
+    onSuccess,
+    onCancel,
+  }: {
+    onSuccess: () => void;
+    onCancel: () => void;
+  }) => (
+    <div>
+      <p>Create product form</p>
+      <button type="button" onClick={onSuccess}>
+        Mock submit
+      </button>
+      <button type="button" onClick={onCancel}>
+        Mock cancel
+      </button>
+    </div>
+  ),
 }));
 
 const mockProducts = [
@@ -32,6 +58,7 @@ const mockProducts = [
 describe("ProductList", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(isAdmin).mockReturnValue(true);
   });
 
   it("renders a loading state while products are fetched", () => {
@@ -78,5 +105,39 @@ describe("ProductList", () => {
         screen.getByText(/unable to load products. please try again/i),
       ).toBeInTheDocument();
     });
+  });
+
+  it("shows the create product button for admin users", async () => {
+    vi.mocked(getProducts).mockResolvedValue(mockProducts);
+
+    render(<ProductList />);
+
+    expect(
+      await screen.findByRole("button", { name: /create product/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("hides the create product button for non-admin users", async () => {
+    vi.mocked(isAdmin).mockReturnValue(false);
+    vi.mocked(getProducts).mockResolvedValue(mockProducts);
+
+    render(<ProductList />);
+
+    await screen.findByText("Coffee Beans");
+
+    expect(
+      screen.queryByRole("button", { name: /create product/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("opens the create product form when the button is clicked", async () => {
+    const user = userEvent.setup();
+    vi.mocked(getProducts).mockResolvedValue(mockProducts);
+
+    render(<ProductList />);
+
+    await user.click(await screen.findByRole("button", { name: /create product/i }));
+
+    expect(screen.getByText("Create product form")).toBeInTheDocument();
   });
 });

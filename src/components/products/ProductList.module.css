@@ -7,9 +7,37 @@
 
 .header {
   display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.headerContent {
+  display: flex;
   flex-direction: column;
   gap: 0.375rem;
-  margin-bottom: 1.5rem;
+}
+
+.createButton {
+  flex-shrink: 0;
+  padding: 0.625rem 1rem;
+  border: none;
+  border-radius: 0.5rem;
+  background: var(--foreground);
+  color: var(--background);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.createButton:hover {
+  opacity: 0.9;
+}
+
+.createButton:active {
+  transform: scale(0.98);
 }
 
 .title {
