@@ -3,16 +3,22 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { AUTH_CHANGE_EVENT, isAuthenticated } from "@/services/auth";
+import {
+  AUTH_CHANGE_EVENT,
+  isAdmin,
+  isAuthenticated,
+} from "@/services/auth";
 import styles from "./Navbar.module.css";
 
 export default function Navbar() {
   const pathname = usePathname();
   const [authenticated, setAuthenticated] = useState(false);
+  const [admin, setAdmin] = useState(false);
 
   useEffect(() => {
     const syncAuth = () => {
       setAuthenticated(isAuthenticated());
+      setAdmin(isAdmin());
     };
 
     syncAuth();
@@ -29,6 +35,16 @@ export default function Navbar() {
         <Link href="/" className={styles.link}>
           Home
         </Link>
+        {admin && (
+          <Link
+            href="/admin/products"
+            className={`${styles.link} ${
+              pathname.startsWith("/admin/products") ? styles.activeLink : ""
+            }`}
+          >
+            Products
+          </Link>
+        )}
       </div>
 
       {!authenticated ? (

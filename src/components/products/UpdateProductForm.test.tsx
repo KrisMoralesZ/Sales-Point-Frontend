@@ -121,6 +121,29 @@ describe("UpdateProductForm", () => {
     expect(onSuccess).not.toHaveBeenCalled();
   });
 
+  it("shows validation errors without calling the API", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <UpdateProductForm
+        product={mockProduct}
+        onSuccess={onSuccess}
+        onCancel={onCancel}
+      />,
+    );
+
+    const nameInput = screen.getByLabelText(/^name$/i);
+    await user.clear(nameInput);
+    await user.type(nameInput, "ab");
+    await user.click(screen.getByRole("button", { name: /save changes/i }));
+
+    expect(
+      await screen.findByText(/name must be at least 3 characters/i),
+    ).toBeInTheDocument();
+    expect(toast.error).toHaveBeenCalledWith("Please fix the highlighted fields.");
+    expect(updateProduct).not.toHaveBeenCalled();
+  });
+
   it("calls onCancel when the cancel button is clicked", async () => {
     const user = userEvent.setup();
 

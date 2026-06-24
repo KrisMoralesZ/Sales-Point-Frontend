@@ -2,11 +2,17 @@
 
 import { useState } from "react";
 import { toast } from "react-toastify";
+import { getApiErrorMessage } from "@/services/apiError";
 import {
   Product,
   updateProduct,
   UpdateProductInput,
 } from "@/services/products";
+import {
+  hasFormErrors,
+  ProductFormErrors,
+  validateProductForm,
+} from "@/components/products/productFormValidation";
 import styles from "./CreateProductForm.module.css";
 
 interface ProductFormData {
@@ -46,6 +52,8 @@ export default function UpdateProductForm({
   const [formData, setFormData] = useState<ProductFormData>(() =>
     toFormData(product),
   );
+  const [fieldErrors, setFieldErrors] = useState<ProductFormErrors>({});
+  const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const handleChange = (
@@ -53,10 +61,28 @@ export default function UpdateProductForm({
   ) => {
     const { name, value } = event.target;
     setFormData((current) => ({ ...current, [name]: value }));
+    setFieldErrors((current) => {
+      if (!(name in current)) return current;
+      const next = { ...current };
+      delete next[name as keyof ProductFormErrors];
+      return next;
+    });
+    setFormError(null);
   };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+
+    const validationErrors = validateProductForm(formData);
+    if (hasFormErrors(validationErrors)) {
+      setFieldErrors(validationErrors);
+      setFormError("Please fix the highlighted fields before saving.");
+      toast.error("Please fix the highlighted fields.");
+      return;
+    }
+
+    setFieldErrors({});
+    setFormError(null);
     setSubmitting(true);
 
     const payload: UpdateProductInput = {
@@ -72,12 +98,22 @@ export default function UpdateProductForm({
       const updatedProduct = await updateProduct(product.id, payload);
       toast.success("Product updated successfully");
       onSuccess(updatedProduct);
-    } catch {
-      toast.error("Unable to update product. Please check the form and try again.");
+    } catch (error) {
+      const message = getApiErrorMessage(
+        error,
+        "Unable to update product. Please check the form and try again.",
+      );
+      setFormError(message);
+      toast.error(message);
     } finally {
       setSubmitting(false);
     }
   };
+
+  const inputClassName = (field: keyof ProductFormErrors) =>
+    fieldErrors[field]
+      ? `${styles.input} ${styles.inputError}`
+      : styles.input;
 
   return (
     <div className={styles.overlay} role="presentation" onClick={onCancel}>
@@ -86,6 +122,7 @@ export default function UpdateProductForm({
         onSubmit={handleSubmit}
         onClick={(event) => event.stopPropagation()}
         aria-labelledby="update-product-title"
+        noValidate
       >
         <div className={styles.header}>
           <h2 id="update-product-title" className={styles.title}>
@@ -96,13 +133,19 @@ export default function UpdateProductForm({
           </p>
         </div>
 
+        {formError && (
+          <p className={styles.formError} role="alert">
+            {formError}
+          </p>
+        )}
+
         <div className={styles.fields}>
           <div className={styles.field}>
             <label className={styles.label} htmlFor={`name-${product.id}`}>
               Name
             </label>
             <input
-              className={styles.input}
+              className={inputClassName("name")}
               type="text"
               id={`name-${product.id}`}
               name="name"
@@ -110,7 +153,20 @@ export default function UpdateProductForm({
               onChange={handleChange}
               minLength={3}
               required
+              aria-invalid={!!fieldErrors.name}
+              aria-describedby={
+                fieldErrors.name ? `name-error-${product.id}` : undefined
+              }
             />
+            {fieldErrors.name && (
+              <p
+                id={`name-error-${product.id}`}
+                className={styles.fieldError}
+                role="alert"
+              >
+                {fieldErrors.name}
+              </p>
+            )}
           </div>
 
           <div className={styles.field}>
@@ -136,7 +192,7 @@ export default function UpdateProductForm({
               SKU
             </label>
             <input
-              className={styles.input}
+              className={inputClassName("sku")}
               type="text"
               id={`sku-${product.id}`}
               name="sku"
@@ -144,7 +200,20 @@ export default function UpdateProductForm({
               onChange={handleChange}
               minLength={1}
               required
+              aria-invalid={!!fieldErrors.sku}
+              aria-describedby={
+                fieldErrors.sku ? `sku-error-${product.id}` : undefined
+              }
             />
+            {fieldErrors.sku && (
+              <p
+                id={`sku-error-${product.id}`}
+                className={styles.fieldError}
+                role="alert"
+              >
+                {fieldErrors.sku}
+              </p>
+            )}
           </div>
 
           <div className={styles.field}>
@@ -152,7 +221,7 @@ export default function UpdateProductForm({
               Price
             </label>
             <input
-              className={styles.input}
+              className={inputClassName("price")}
               type="number"
               id={`price-${product.id}`}
               name="price"
@@ -161,7 +230,20 @@ export default function UpdateProductForm({
               min="0.01"
               step="0.01"
               required
+              aria-invalid={!!fieldErrors.price}
+              aria-describedby={
+                fieldErrors.price ? `price-error-${product.id}` : undefined
+              }
             />
+            {fieldErrors.price && (
+              <p
+                id={`price-error-${product.id}`}
+                className={styles.fieldError}
+                role="alert"
+              >
+                {fieldErrors.price}
+              </p>
+            )}
           </div>
 
           <div className={styles.field}>
@@ -169,7 +251,7 @@ export default function UpdateProductForm({
               Stock quantity
             </label>
             <input
-              className={styles.input}
+              className={inputClassName("quantity")}
               type="number"
               id={`quantity-${product.id}`}
               name="quantity"
@@ -178,7 +260,20 @@ export default function UpdateProductForm({
               min="0"
               step="1"
               required
+              aria-invalid={!!fieldErrors.quantity}
+              aria-describedby={
+                fieldErrors.quantity ? `quantity-error-${product.id}` : undefined
+              }
             />
+            {fieldErrors.quantity && (
+              <p
+                id={`quantity-error-${product.id}`}
+                className={styles.fieldError}
+                role="alert"
+              >
+                {fieldErrors.quantity}
+              </p>
+            )}
           </div>
 
           <div className={styles.field}>
@@ -186,14 +281,27 @@ export default function UpdateProductForm({
               Image URL
             </label>
             <input
-              className={styles.input}
+              className={inputClassName("imageUrl")}
               type="url"
               id={`imageUrl-${product.id}`}
               name="imageUrl"
               value={formData.imageUrl}
               onChange={handleChange}
               placeholder="https://example.com/product.jpg"
+              aria-invalid={!!fieldErrors.imageUrl}
+              aria-describedby={
+                fieldErrors.imageUrl ? `image-url-error-${product.id}` : undefined
+              }
             />
+            {fieldErrors.imageUrl && (
+              <p
+                id={`image-url-error-${product.id}`}
+                className={styles.fieldError}
+                role="alert"
+              >
+                {fieldErrors.imageUrl}
+              </p>
+            )}
           </div>
         </div>
 

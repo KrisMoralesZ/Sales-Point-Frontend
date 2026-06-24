@@ -94,6 +94,22 @@ describe("CreateProductForm", () => {
     expect(onSuccess).not.toHaveBeenCalled();
   });
 
+  it("shows validation errors without calling the API", async () => {
+    const user = userEvent.setup();
+
+    render(<CreateProductForm onSuccess={onSuccess} onCancel={onCancel} />);
+
+    await user.type(screen.getByLabelText(/^name$/i), "ab");
+    await user.click(screen.getByRole("button", { name: /^create product$/i }));
+
+    expect(
+      await screen.findByText(/name must be at least 3 characters/i),
+    ).toBeInTheDocument();
+    expect(toast.error).toHaveBeenCalledWith("Please fix the highlighted fields.");
+    expect(createProduct).not.toHaveBeenCalled();
+    expect(onSuccess).not.toHaveBeenCalled();
+  });
+
   it("calls onCancel when the cancel button is clicked", async () => {
     const user = userEvent.setup();
 

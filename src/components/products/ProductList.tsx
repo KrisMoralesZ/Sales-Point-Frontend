@@ -18,13 +18,21 @@ function formatPrice(price: number | string): string {
 
 export default function ProductList() {
   const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
-  const loadProducts = useCallback(async () => {
-    setLoading(true);
+  const loadProducts = useCallback(async (options?: { refresh?: boolean }) => {
+    const isRefresh = options?.refresh ?? false;
+
+    if (isRefresh) {
+      setRefreshing(true);
+    } else {
+      setInitialLoading(true);
+    }
+
     setError(null);
 
     try {
@@ -33,7 +41,8 @@ export default function ProductList() {
     } catch {
       setError("Unable to load products. Please try again.");
     } finally {
-      setLoading(false);
+      setInitialLoading(false);
+      setRefreshing(false);
     }
   }, []);
 
@@ -43,12 +52,12 @@ export default function ProductList() {
 
   const handleProductCreated = async () => {
     setShowCreateForm(false);
-    await loadProducts();
+    await loadProducts({ refresh: true });
   };
 
   const handleProductUpdated = async () => {
     setEditingProduct(null);
-    await loadProducts();
+    await loadProducts({ refresh: true });
   };
 
   return (
@@ -87,14 +96,32 @@ export default function ProductList() {
         />
       )}
 
-      {loading ? (
-        <p className={styles.state}>Loading products...</p>
+      {initialLoading ? (
+        <div className={`${styles.state} ${styles.loadingState}`}>
+          <span className={styles.spinner} aria-hidden="true" />
+          <p>Loading products...</p>
+        </div>
       ) : error ? (
-        <p className={`${styles.state} ${styles.error}`}>{error}</p>
+        <div className={`${styles.state} ${styles.errorState}`}>
+          <p className={styles.error}>{error}</p>
+          <button
+            type="button"
+            className={styles.retryButton}
+            onClick={() => loadProducts()}
+          >
+            Try again
+          </button>
+        </div>
       ) : products.length === 0 ? (
         <p className={styles.state}>No products found.</p>
       ) : (
-        <div className={styles.tableWrapper}>
+        <>
+          {refreshing && (
+            <p className={styles.refreshingBadge} role="status">
+              Updating products...
+            </p>
+          )}
+          <div className={styles.tableWrapper}>
           <table className={styles.table}>
             <thead>
               <tr>
@@ -127,7 +154,8 @@ export default function ProductList() {
               ))}
             </tbody>
           </table>
-        </div>
+          </div>
+        </>
       )}
     </section>
   );

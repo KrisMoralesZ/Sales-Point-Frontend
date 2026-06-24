@@ -13,6 +13,13 @@
   display: flex;
   flex-direction: row;
   align-items: center;
+  gap: 1rem;
+}
+
+.activeLink {
+  color: color-mix(in srgb, var(--foreground) 70%, transparent);
+  text-decoration: underline;
+  text-underline-offset: 0.2rem;
 }
 
 .right {

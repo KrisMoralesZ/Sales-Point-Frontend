@@ -89,6 +89,7 @@ describe("ProductList", () => {
     render(<ProductList />);
 
     expect(screen.getByText(/loading products/i)).toBeInTheDocument();
+    expect(document.querySelector("[class*='spinner']")).toBeTruthy();
   });
 
   it("renders products in a table", async () => {
@@ -127,6 +128,22 @@ describe("ProductList", () => {
         screen.getByText(/unable to load products. please try again/i),
       ).toBeInTheDocument();
     });
+
+    expect(screen.getByRole("button", { name: /try again/i })).toBeInTheDocument();
+  });
+
+  it("retries loading products when try again is clicked", async () => {
+    const user = userEvent.setup();
+    vi.mocked(getProducts)
+      .mockRejectedValueOnce(new Error("Network error"))
+      .mockResolvedValueOnce(mockProducts);
+
+    render(<ProductList />);
+
+    await user.click(await screen.findByRole("button", { name: /try again/i }));
+
+    expect(await screen.findByText("Coffee Beans")).toBeInTheDocument();
+    expect(getProducts).toHaveBeenCalledTimes(2);
   });
 
   it("shows the create product button for admin users", async () => {
