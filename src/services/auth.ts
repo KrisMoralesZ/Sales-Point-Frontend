@@ -72,3 +72,9 @@ export function isAdmin(): boolean {
 
   return getUser()?.role === UserRole.Admin;
 }
+
+export function isEmployee(): boolean {
+  if (!isAuthenticated()) return false;
+
+  return getUser()?.role === UserRole.Employee;
+}

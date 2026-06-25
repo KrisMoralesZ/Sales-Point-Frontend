@@ -5,6 +5,7 @@ import {
   getUser,
   isAdmin,
   isAuthenticated,
+  isEmployee,
   setAuth,
   UserRole,
 } from "./auth";
@@ -79,5 +80,21 @@ describe("auth service", () => {
 
   it("returns false for isAdmin when not authenticated", () => {
     expect(isAdmin()).toBe(false);
+  });
+
+  it("returns true for isEmployee when authenticated as Employee", () => {
+    setAuth({ ...mockAuthResponse, role: UserRole.Employee });
+
+    expect(isEmployee()).toBe(true);
+  });
+
+  it("returns false for isEmployee when authenticated as Admin", () => {
+    setAuth(mockAuthResponse);
+
+    expect(isEmployee()).toBe(false);
+  });
+
+  it("returns false for isEmployee when not authenticated", () => {
+    expect(isEmployee()).toBe(false);
   });
 });
