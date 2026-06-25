@@ -1,5 +1,12 @@
 const TOKEN_KEY = "token";
 const USER_KEY = "user";
+export const AUTH_CHANGE_EVENT = "auth-change";
+
+function notifyAuthChange(): void {
+  if (typeof window === "undefined") return;
+
+  window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
+}
 
 export interface AuthUser {
   id: string;
@@ -19,6 +26,7 @@ export function setAuth({ token, ...user }: AuthResponse): void {
 
   localStorage.setItem(TOKEN_KEY, token);
   localStorage.setItem(USER_KEY, JSON.stringify(user));
+  notifyAuthChange();
 }
 
 export function getToken(): string | null {
@@ -45,8 +53,9 @@ export function clearAuth(): void {
 
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(USER_KEY);
+  notifyAuthChange();
 }
 
 export function isAuthenticated(): boolean {
-  return !!getToken();
+  return !!getToken() && !!getUser();
 }
