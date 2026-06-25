@@ -36,6 +36,7 @@ export default function LoginForm() {
       setAuth(response.data);
       router.push("/");
     } catch (error) {
+      console.error(error);
       toast.error("Login failed");
     }
   };
