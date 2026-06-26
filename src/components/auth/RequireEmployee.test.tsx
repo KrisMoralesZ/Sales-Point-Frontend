@@ -51,7 +51,7 @@ describe("RequireEmployee", () => {
     expect(screen.queryByText("Checkout content")).not.toBeInTheDocument();
   });
 
-  it("shows access denied when the user is authenticated but not employee", async () => {
+  it("redirects to admin dashboard when the user is authenticated but not employee", async () => {
     setAuth({ ...mockAuthResponse, role: UserRole.Admin });
 
     render(
@@ -60,12 +60,10 @@ describe("RequireEmployee", () => {
       </RequireEmployee>,
     );
 
-    expect(await screen.findByRole("heading", { name: /access denied/i })).toBeInTheDocument();
-    expect(
-      screen.getByText(/you need employee permissions to view this page/i),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /go home/i })).toHaveAttribute("href", "/");
+    await waitFor(() => {
+      expect(mockReplace).toHaveBeenCalledWith("/admin/products");
+    });
+
     expect(screen.queryByText("Checkout content")).not.toBeInTheDocument();
-    expect(mockReplace).not.toHaveBeenCalled();
   });
 });

@@ -20,6 +20,9 @@ vi.mock("@/services/requests", () => ({
 
 vi.mock("@/services/auth", () => ({
   setAuth: vi.fn(),
+  getRoleHomePath: vi.fn((role: string) =>
+    role === "Employee" ? "/sales-point" : "/admin/products",
+  ),
 }));
 
 vi.mock("react-toastify", () => ({
@@ -108,7 +111,7 @@ describe("SignUpForm", () => {
       });
       expect(setAuth).toHaveBeenCalledWith(mockAuthResponse);
       expect(toast.success).toHaveBeenCalledWith("Account created successfully");
-      expect(mockPush).toHaveBeenCalledWith("/");
+      expect(mockPush).toHaveBeenCalledWith("/admin/products");
     });
   });
 

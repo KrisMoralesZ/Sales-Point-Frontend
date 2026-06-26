@@ -1,11 +1,14 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   clearAuth,
+  getAuthenticatedHomePath,
+  getRoleHomePath,
   getToken,
   getUser,
   isAdmin,
   isAuthenticated,
   isEmployee,
+  ROUTES,
   setAuth,
   UserRole,
 } from "./auth";
@@ -96,5 +99,21 @@ describe("auth service", () => {
 
   it("returns false for isEmployee when not authenticated", () => {
     expect(isEmployee()).toBe(false);
+  });
+
+  it("returns the correct home path for each role", () => {
+    expect(getRoleHomePath(UserRole.Admin)).toBe(ROUTES.adminHome);
+    expect(getRoleHomePath(UserRole.Employee)).toBe(ROUTES.employeeHome);
+    expect(getRoleHomePath(null)).toBe(ROUTES.login);
+  });
+
+  it("returns the authenticated home path based on stored auth", () => {
+    expect(getAuthenticatedHomePath()).toBe(ROUTES.login);
+
+    setAuth(mockAuthResponse);
+    expect(getAuthenticatedHomePath()).toBe(ROUTES.adminHome);
+
+    setAuth({ ...mockAuthResponse, role: UserRole.Employee });
+    expect(getAuthenticatedHomePath()).toBe(ROUTES.employeeHome);
   });
 });
