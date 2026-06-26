@@ -13,6 +13,12 @@ export const UserRole = {
   Employee: "Employee",
 } as const;
 
+export const ROUTES = {
+  login: "/login",
+  adminHome: "/admin/products",
+  employeeHome: "/sales-point",
+} as const;
+
 export type UserRole = (typeof UserRole)[keyof typeof UserRole];
 
 export interface AuthUser {
@@ -77,4 +83,17 @@ export function isEmployee(): boolean {
   if (!isAuthenticated()) return false;
 
   return getUser()?.role === UserRole.Employee;
+}
+
+export function getRoleHomePath(role?: UserRole | null): string {
+  if (role === UserRole.Admin) return ROUTES.adminHome;
+  if (role === UserRole.Employee) return ROUTES.employeeHome;
+
+  return ROUTES.login;
+}
+
+export function getAuthenticatedHomePath(): string {
+  if (!isAuthenticated()) return ROUTES.login;
+
+  return getRoleHomePath(getUser()?.role);
 }

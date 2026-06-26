@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import apiUrl from "@/services/requests";
-import { AuthResponse, setAuth } from "@/services/auth";
+import { AuthResponse, getRoleHomePath, setAuth } from "@/services/auth";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import styles from "./Forms.module.css";
@@ -48,7 +48,7 @@ export default function SignUpForm() {
 
       setAuth(loginResponse.data);
       toast.success("Account created successfully");
-      router.push("/");
+      router.push(getRoleHomePath(loginResponse.data.role));
     } catch (error) {
       console.error("Signup failed:", error);
       toast.error("Signup failed");

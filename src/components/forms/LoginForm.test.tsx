@@ -20,6 +20,9 @@ vi.mock("@/services/requests", () => ({
 
 vi.mock("@/services/auth", () => ({
   setAuth: vi.fn(),
+  getRoleHomePath: vi.fn((role: string) =>
+    role === "Employee" ? "/sales-point" : "/admin/products",
+  ),
 }));
 
 vi.mock("react-toastify", () => ({
@@ -84,7 +87,7 @@ describe("LoginForm", () => {
         password: "password123",
       });
       expect(setAuth).toHaveBeenCalledWith(mockAuthResponse);
-      expect(mockPush).toHaveBeenCalledWith("/");
+      expect(mockPush).toHaveBeenCalledWith("/admin/products");
     });
   });
 

@@ -51,7 +51,7 @@ describe("RequireAdmin", () => {
     expect(screen.queryByText("Admin content")).not.toBeInTheDocument();
   });
 
-  it("shows access denied when the user is authenticated but not admin", async () => {
+  it("redirects to sales point when the user is authenticated but not admin", async () => {
     setAuth({ ...mockAuthResponse, role: UserRole.Employee });
 
     render(
@@ -60,12 +60,10 @@ describe("RequireAdmin", () => {
       </RequireAdmin>,
     );
 
-    expect(await screen.findByRole("heading", { name: /access denied/i })).toBeInTheDocument();
-    expect(
-      screen.getByText(/you need admin permissions to view this page/i),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /go home/i })).toHaveAttribute("href", "/");
+    await waitFor(() => {
+      expect(mockReplace).toHaveBeenCalledWith("/sales-point");
+    });
+
     expect(screen.queryByText("Admin content")).not.toBeInTheDocument();
-    expect(mockReplace).not.toHaveBeenCalled();
   });
 });
