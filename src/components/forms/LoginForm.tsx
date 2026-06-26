@@ -3,7 +3,7 @@ import { useState } from "react";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import apiUrl from "@/services/requests";
-import { AuthResponse, setAuth } from "@/services/auth";
+import { AuthResponse, getRoleHomePath, setAuth } from "@/services/auth";
 import styles from "./Forms.module.css";
 
 interface LoginFormData {
@@ -34,7 +34,7 @@ export default function LoginForm() {
         formData,
       );
       setAuth(response.data);
-      router.push("/");
+      router.push(getRoleHomePath(response.data.role));
     } catch (error) {
       console.error(error);
       toast.error("Login failed");

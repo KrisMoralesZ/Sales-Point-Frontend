@@ -1,14 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   AUTH_CHANGE_EVENT,
+  getAuthenticatedHomePath,
   isAuthenticated,
   isEmployee,
+  ROUTES,
 } from "@/services/auth";
-import styles from "./RequireAdmin.module.css";
 
 type AuthStatus = "loading" | "unauthenticated" | "forbidden" | "authorized";
 
@@ -45,28 +45,17 @@ export default function RequireEmployee({ children }: RequireEmployeeProps) {
 
   useEffect(() => {
     if (status === "unauthenticated") {
-      router.replace("/login");
+      router.replace(ROUTES.login);
+      return;
+    }
+
+    if (status === "forbidden") {
+      router.replace(getAuthenticatedHomePath());
     }
   }, [status, router]);
 
-  if (status === "loading" || status === "unauthenticated") {
+  if (status === "loading" || status === "unauthenticated" || status === "forbidden") {
     return null;
-  }
-
-  if (status === "forbidden") {
-    return (
-      <div className={styles.wrapper}>
-        <div className={styles.panel}>
-          <h1 className={styles.title}>Access denied</h1>
-          <p className={styles.message}>
-            You need employee permissions to view this page.
-          </p>
-          <Link href="/" className={styles.link}>
-            Go home
-          </Link>
-        </div>
-      </div>
-    );
   }
 
   return <>{children}</>;
